@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+
+# Binary files
+*.pkl
+*.pdf
+
+# IDE specific
+.vscode/
+.idea/

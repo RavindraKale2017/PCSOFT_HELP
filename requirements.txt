@@ -1,0 +1,8 @@
+streamlit
+pymupdf
+Pillow
+faiss-cpu
+langchain
+requests
+torch
+transformers
