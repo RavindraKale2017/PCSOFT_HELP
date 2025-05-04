@@ -62,9 +62,8 @@ def load_index():
         return index, embeddings
     return None, None
 
-# Move chunks to module level and initialize it
-chunks = []
 index, embeddings = load_index()
+chunks = []  # Initialize chunks before conditional check
 if index is None:
     chunks = extract_pdf_chunks(PDF_PATH)
     if chunks:
@@ -78,13 +77,19 @@ else:
 def retrieve_relevant_chunks(query, top_k=3):
     global chunks
     if not chunks or embeddings is None or index is None:
-        print("[ERROR] Retrieval failed: missing chunks, embeddings, or index.")
         return [], []
-    embedder = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        
+    # Cache the embedder to avoid reloading
+    if not hasattr(retrieve_relevant_chunks, 'embedder'):
+        retrieve_relevant_chunks.embedder = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
+        
+    embedder = retrieve_relevant_chunks.embedder
     query_vec = np.array(embedder.embed_query(query)).astype("float32").reshape(1, -1)
     D, I = index.search(query_vec, top_k)
     retrieved = [chunks[i] for i in I[0]]
-    return retrieved, retrieved
+    return retrieved  # Return both lists with content
 
 def save_chunks_to_txt(chunks, out_path="extracted_chunks.txt"):
     with open(out_path, "w", encoding="utf-8") as f:
