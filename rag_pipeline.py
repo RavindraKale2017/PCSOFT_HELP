@@ -74,22 +74,20 @@ else:
     # Load chunks from file if index exists
     chunks = extract_pdf_chunks(PDF_PATH) if not chunks else chunks
 
+# Pre-load the embedder at module level
+global_embedder = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
+
 def retrieve_relevant_chunks(query, top_k=3):
-    global chunks
+    global chunks, global_embedder
     if not chunks or embeddings is None or index is None:
         return [], []
         
-    # Cache the embedder to avoid reloading
-    if not hasattr(retrieve_relevant_chunks, 'embedder'):
-        retrieve_relevant_chunks.embedder = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
-        )
-        
-    embedder = retrieve_relevant_chunks.embedder
-    query_vec = np.array(embedder.embed_query(query)).astype("float32").reshape(1, -1)
+    query_vec = np.array(global_embedder.embed_query(query)).astype("float32").reshape(1, -1)
     D, I = index.search(query_vec, top_k)
     retrieved = [chunks[i] for i in I[0]]
-    return retrieved  # Return both lists with content
+    return retrieved, retrieved  # Return exactly 2 values
 
 def save_chunks_to_txt(chunks, out_path="extracted_chunks.txt"):
     with open(out_path, "w", encoding="utf-8") as f:
