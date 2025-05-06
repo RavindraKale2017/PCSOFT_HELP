@@ -3,7 +3,7 @@ import requests
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
 session = requests.Session()  # Create a persistent session
 
-def ask_ollama(query, context_chunks, model="llama3"):
+def ask_ollama(query, context_chunks, model="llama3", temperature=0.1, max_tokens=512):
     # Combine context chunks into a single context string
     context = "\n\n".join(context_chunks)
     prompt = f"You are a help assistant for PCSOFT IEV. Only answer using the provided documentation context.\n\nContext:\n{context}\n\nUser question: {query}\nAnswer:"
@@ -11,7 +11,9 @@ def ask_ollama(query, context_chunks, model="llama3"):
     payload = {
         "model": model,
         "prompt": prompt,
-        "stream": False  # Disable streaming for faster responses
+        "stream": False,  # Disable streaming for faster responses
+        "temperature": temperature,  # Lower temperature for more focused responses
+        "max_tokens": max_tokens     # Limit response length
     }
     
     try:

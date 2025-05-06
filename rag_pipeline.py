@@ -76,10 +76,10 @@ else:
 
 # Pre-load the embedder at module level
 global_embedder = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+    model_name="paraphrase-MiniLM-L3-v2"  # Faster than L6
 )
 
-def retrieve_relevant_chunks(query, top_k=3):
+def retrieve_relevant_chunks(query, top_k=2):  # Changed from 3 to 2
     global chunks, global_embedder
     if not chunks or embeddings is None or index is None:
         return [], []
