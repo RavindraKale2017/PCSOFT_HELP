@@ -8,17 +8,23 @@ import pickle
 
 PDF_PATH = "Data/Report_Index only.pdf"  # Update this if your folder is 'Data'
 
-def extract_pdf_chunks(pdf_path):
+def extract_pdf_chunks(pdf_path, chunk_size=500, chunk_overlap=100):
     try:
         doc = fitz.open(pdf_path)
     except Exception as e:
         print(f"[ERROR] Error opening PDF: {e}")
         return []
+    
     chunks = []
     for page in doc:
         text = page.get_text()
         if text.strip():
-            chunks.append(text.strip())
+            # Split text into smaller semantic chunks
+            words = text.split()
+            for i in range(0, len(words), chunk_size-chunk_overlap):
+                chunk = ' '.join(words[i:i+chunk_size])
+                chunks.append(chunk.strip())
+    
     if not chunks:
         print("[WARNING] No extractable text found in PDF.")
     return chunks
@@ -79,15 +85,27 @@ global_embedder = HuggingFaceEmbeddings(
     model_name="paraphrase-MiniLM-L3-v2"  # Faster than L6
 )
 
-def retrieve_relevant_chunks(query, top_k=2):  # Changed from 3 to 2
+def retrieve_relevant_chunks(query, top_k=2):
     global chunks, global_embedder
     if not chunks or embeddings is None or index is None:
         return [], []
         
+    # Semantic search
     query_vec = np.array(global_embedder.embed_query(query)).astype("float32").reshape(1, -1)
     D, I = index.search(query_vec, top_k)
-    retrieved = [chunks[i] for i in I[0]]
-    return retrieved, retrieved  # Return exactly 2 values
+    semantic_results = [chunks[i] for i in I[0]]
+    
+    # Simple keyword matching (fallback)
+    keyword_results = []
+    query_words = set(query.lower().split())
+    for chunk in chunks:
+        chunk_words = set(chunk.lower().split())
+        if query_words.intersection(chunk_words):
+            keyword_results.append(chunk)
+    
+    # Combine results with deduplication
+    combined = list(dict.fromkeys(semantic_results + keyword_results[:2]))
+    return combined[:top_k], combined[:top_k]
 
 def save_chunks_to_txt(chunks, out_path="extracted_chunks.txt"):
     with open(out_path, "w", encoding="utf-8") as f:
